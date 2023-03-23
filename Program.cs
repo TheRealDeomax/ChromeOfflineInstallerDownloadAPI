@@ -8,64 +8,70 @@ class Program
 {
     static void Main(string[] args)
     {
-        // Multi Requests
-        Dictionary<string, string> posts = GetPosts();
-        Dictionary<string, Dictionary<string, string>> res = new Dictionary<string, Dictionary<string, string>>();
-        Dictionary<string, HttpWebRequest> ch = new Dictionary<string, HttpWebRequest>();
-        HttpWebRequest wr;
-        foreach (KeyValuePair<string, string> post in posts)
-        {
-            wr = (HttpWebRequest)WebRequest.Create("https://tools.google.com/service/update2");
-            wr.Method = "POST";
-            byte[] postBytes = Encoding.ASCII.GetBytes(post.Value);
-            wr.ContentType = "text/xml";
-            wr.ContentLength = postBytes.Length;
-            Stream requestStream = wr.GetRequestStream();
-            requestStream.Write(postBytes, 0, postBytes.Length);
-            requestStream.Close();
-            ch[post.Key] = wr;
-        }
-
-        HttpWebResponse response;
-        Stream streamResponse;
-        StreamReader streamReader;
-        foreach (KeyValuePair<string, HttpWebRequest> req in ch)
-        {
-            response = (HttpWebResponse)req.Value.GetResponse();
-            streamResponse = response.GetResponseStream();
-            streamReader = new StreamReader(streamResponse);
-            string content = streamReader.ReadToEnd();
-            res[req.Key] = new Dictionary<string, string>(){
-                { "error", "" },
-                { "content", content }
-            };
-            response.Close();
-            streamResponse.Close();
-            streamReader.Close();
-        }
-
-        // XML to Array
-        foreach (KeyValuePair<string, Dictionary<string, string>> r in res)
-        {
-            XmlSerializer serializer = new XmlSerializer(typeof(Request));
-            using (TextReader reader = new StringReader(r.Value["content"]))
-            {
-                Request request = (Request)serializer.Deserialize(reader);
-                if (!string.IsNullOrEmpty(r.Value["error"]))
-                {
-                    // Handle error
-                }
-                else
-                {
-                    // Do something with the request object
-                }
-            }
-        }
+        // comment
     }
 
-    static Dictionary<string, string> GetPosts()
+    public static Dictionary<string, string> getPosts()
     {
+        Dictionary<string, string[]> platforms = new Dictionary<string, string[]>()
+        {
+            {"win", new string[] { "x64", "x86" } },
+            {"mac", new string[] { "x64" } }
+        };
+        string[] channels = new string[] { "stable", "beta", "dev", "canary" };
+        Dictionary<string, string> vers = new Dictionary<string, string>()
+        {
+            {"win", "10.0" },
+            {"mac", "46.0.2490.86" }
+        };
+        Dictionary<string, string> appids = new Dictionary<string, string>()
+        {
+            {"win_stable", "{8A69D345-D564-463C-AFF1-A69D9E530F96}" },
+            {"win_beta", "{8A69D345-D564-463C-AFF1-A69D9E530F96}" },
+            {"win_dev", "{8A69D345-D564-463C-AFF1-A69D9E530F96}" },
+            {"win_canary", "{4EA16AC7-FD5A-47C3-875B-DBF4A2008C20}" },
+            {"mac_stable", "com.google.Chrome" },
+            {"mac_beta", "com.google.Chrome.Beta" },
+            {"mac_dev", "com.google.Chrome.Dev" },
+            {"mac_canary", "com.google.Chrome.Canary" }
+        };
+        Dictionary<string, string> aps = new Dictionary<string, string>()
+        {
+            {"win_stable_x86", "-multi-chrome" },
+            {"win_stable_x64", "x64-stable-multi-chrome" },
+            {"win_beta_x86", "1.1-beta" },
+            {"win_beta_x64", "x64-beta-multi-chrome" },
+            {"win_dev_x86", "2.0-dev" },
+            {"win_dev_x64", "x64-dev-multi-chrome" },
+            {"win_canary_x86", "" },
+            {"win_canary_x64", "x64-canary" },
+            {"mac_stable_x86", "" },
+            {"mac_stable_x64", "" },
+            {"mac_beta_x86", "betachannel" },
+            {"mac_beta_x64", "betachannel" },
+            {"mac_dev_x86", "devchannel" },
+            {"mac_dev_x64", "devchannel" },
+            {"mac_canary_x86", "" },
+            {"mac_canary_x64", "" }
+        };
+
         Dictionary<string, string> posts = new Dictionary<string, string>();
-        Dictionary<string, string[]> platforms = new Dictionary<string, string[]>(){
-            { "win", new string[]{ "x64", "x86" } },
-            { "mac", new string
+        foreach (KeyValuePair<string, string[]> kvp in platforms)
+        {
+            string os = kvp.Key;
+            foreach (string channel in channels)
+            {
+                foreach (string arch in kvp.Value)
+                {
+                    string ver = vers[os];
+                    string appid = appids[os + "_" + channel];
+                    string ap = aps[os + "_" + channel + "_" + arch];
+
+                    string postdata = @"<?xml version='1.0' encoding='UTF-8'?>
+                                        <request protocol='3.0' version='1.3.23.9' shell_version='1.3.21.103' ismachine='0'
+                                            sessionid='{3597644B-295252-4F92-AE55-D315F45F80A5}' installsource='ondemandcheckforupdate'
+    requestid='{CD7523AD-A40D-49F4-AEEF-8C114B804658}' dedup='cr'>
+<hw sse='1' sse2='1' sse3='1' ssse3='1' sse41='1' sse42='1' avx='1' physmemory='12582912' />
+<os platform='{$os}' version='{$ver}' arch='{$arch}'/>
+<app appid='{$appid}' ap='{$ap}' version='' nextversion='' lang='' brand='GGLS' client=''><updatecheck/></app>
+</request>

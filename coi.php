@@ -1,4 +1,5 @@
 <?php
+// comment
 
 function getPosts() {
     $platforms = array(
